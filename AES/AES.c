@@ -93,8 +93,6 @@ void keyExpansion(unsigned char *key, unsigned char **w)
         i++; 
     }       
 
-    i = Nk;
-
     short wi = Nb * (Nr + 1);
     while (i < wi)
     {
