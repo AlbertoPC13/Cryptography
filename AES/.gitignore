@@ -1,0 +1,2 @@
+# ignore linux executables
+*.out
