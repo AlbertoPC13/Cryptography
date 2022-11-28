@@ -1,7 +1,9 @@
 #include "AES.h"
 
+// Round constant word array
 unsigned char rcon[11] = {0x8D, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
 
+// S-Box
 unsigned char const s[256] = {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -20,18 +22,16 @@ unsigned char const s[256] = {
     0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16};
 
-unsigned char **keyScheduleCreation(void)
+// Main AES Cipher function
+unsigned char *AES_Cipher(unsigned char *in, unsigned char *key)
 {
-    unsigned char **w;
-    short n = Nb * (Nr + 1);
-    w = (unsigned char **)malloc(n * sizeof(unsigned char *));
-
-    for (short i = 0; i < n; i++)
-        w[i] = (unsigned char *)calloc(2, 2);
-
-    return w;
+    unsigned char **w = keyScheduleCreation();
+    keyExpansion(key, w);
+    
+    return Cipher(in,w);
 }
 
+// Word manipulation functions
 unsigned char *word(unsigned char w0, unsigned char w1, unsigned char w2, unsigned char w3)
 {
     unsigned char *w = (unsigned char *)malloc(4 * sizeof(unsigned char));
@@ -68,16 +68,61 @@ unsigned char *subWord(unsigned char *w)
     return temp;
 }
 
-unsigned char *word_XOR(unsigned char *a, unsigned char *b)
+// State manipulation functions
+unsigned char **StateCreation(unsigned char *input)
 {
-    unsigned char *temp = (unsigned char *)malloc(4 * sizeof(unsigned char));
+    unsigned char **State;
+    State = (unsigned char **)malloc(Nb * sizeof(unsigned char *));
+    
+    short i,j;
 
-    temp[0] = a[0] ^ b[0];
-    temp[1] = a[1] ^ b[1];
-    temp[2] = a[2] ^ b[2];
-    temp[3] = a[3] ^ b[3];
+    for (i = 0; i < Nb; i++)
+        State[i] = (unsigned char *)calloc(2, 2);
 
-    return temp;
+    short k = 0;
+
+    for (i = 0; i < Nb; i++)
+    {
+        for (j = 0; j < Nb; j++)
+        {
+            State[j][i] = input[k];
+            k++;
+        }
+    }
+
+    return State;
+}
+
+unsigned char *outputCreation(unsigned char **state)
+{
+    unsigned char *output = (unsigned char *)malloc(16 * sizeof(unsigned char));
+
+    short i,j,k;
+    k = 0;
+
+    for (i = 0; i < Nb; i++)
+    {
+        for (j = 0; j < Nb; j++)
+        {
+            output[k] = state[j][i];
+            k++; 
+        }
+    }
+    
+    return output;
+}
+
+// Key related functions
+unsigned char **keyScheduleCreation(void)
+{
+    unsigned char **w;
+    short n = Nb * (Nr + 1);
+    w = (unsigned char **)malloc(n * sizeof(unsigned char *));
+
+    for (short i = 0; i < n; i++)
+        w[i] = (unsigned char *)calloc(2, 2);
+
+    return w;
 }
 
 void keyExpansion(unsigned char *key, unsigned char **w)
@@ -112,6 +157,7 @@ void keyExpansion(unsigned char *key, unsigned char **w)
     }
 }
 
+// Cipher related functions
 unsigned char *Cipher(unsigned char *in, unsigned char **w)
 {
     unsigned char **state = StateCreation(in);
@@ -132,13 +178,6 @@ unsigned char *Cipher(unsigned char *in, unsigned char **w)
     
     unsigned char *output = outputCreation(state);
     return output;
-}
-
-void AddRoundKey(unsigned char **state, unsigned char **w, short index)
-{
-    for (short i = 0; i < Nb; i++)
-        for (short j = 0; j < 4; j++)
-            state[j][i] ^= w[index + i][j];
 }
 
 void subBytes(unsigned char **state)
@@ -203,6 +242,14 @@ void mixColumn(unsigned char *column)
                 galois_multiplication(temp[0],3);
 }
 
+void AddRoundKey(unsigned char **state, unsigned char **w, short index)
+{
+    for (short i = 0; i < Nb; i++)
+        for (short j = 0; j < 4; j++)
+            state[j][i] ^= w[index + i][j];
+}
+
+// Galois field multiplication
 unsigned char galois_multiplication(unsigned char a, unsigned char b)
 {
     unsigned char p = 0;
@@ -222,57 +269,7 @@ unsigned char galois_multiplication(unsigned char a, unsigned char b)
     return p;
 }
 
-unsigned char **StateCreation(unsigned char *input)
-{
-    unsigned char **State;
-    State = (unsigned char **)malloc(Nb * sizeof(unsigned char *));
-    
-    short i,j;
-
-    for (i = 0; i < Nb; i++)
-        State[i] = (unsigned char *)calloc(2, 2);
-
-    short k = 0;
-
-    for (i = 0; i < Nb; i++)
-    {
-        for (j = 0; j < Nb; j++)
-        {
-            State[j][i] = input[k];
-            k++;
-        }
-    }
-
-    return State;
-}
-
-unsigned char *outputCreation(unsigned char **state)
-{
-    unsigned char *output = (unsigned char *)malloc(16 * sizeof(unsigned char));
-
-    short i,j,k;
-    k = 0;
-
-    for (i = 0; i < Nb; i++)
-    {
-        for (j = 0; j < Nb; j++)
-        {
-            output[k] = state[j][i];
-            k++; 
-        }
-    }
-    
-    return output;
-}
-
-unsigned char *AES_Cipher(unsigned char *in, unsigned char *key)
-{
-    unsigned char **w = keyScheduleCreation();
-    keyExpansion(key, w);
-    
-    return Cipher(in,w);
-}
-
+// Test purpose functions
 void show_keys(unsigned char **w)
 {
     printf("\n\n");
