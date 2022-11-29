@@ -2,11 +2,17 @@
 #include<stdio.h>
 
 # define Nb 4 // Block size
+
+/* AES 128 parameters */
 // # define Nk 4 // Key Length for 128
-// # define Nk 6 // Key Length for 192
-# define Nk 8 // Key Length for 256
 // # define Nr 10 // Number of rounds for 128
+
+/* AES 192 parameters */
+// # define Nk 6 // Key Length for 192
 // # define Nr 12 // Number of rounds for 192
+
+/* AES 256 parameters */
+# define Nk 8 // Key Length for 256
 # define Nr 14 // Number of rounds for 256
 
 // Main AES Cipher function
